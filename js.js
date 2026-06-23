@@ -1,28 +1,99 @@
+// ═══════════════════════════════════════════
+//   FADY MOSA — PORTFOLIO JS v2
+//   Premium Features · 2026
+// ═══════════════════════════════════════════
+
 // ── LOADER ──
 window.addEventListener('load', () => {
   setTimeout(() => {
-    document.getElementById('loader').classList.add('done');
+    const loader = document.getElementById('loader');
+    if (loader) loader.classList.add('done');
+    // Trigger hero reveal after load
+    document.querySelectorAll('[data-reveal],[data-reveal-left],[data-reveal-right]').forEach((el, i) => {
+      setTimeout(() => el.classList.add('in'), 200 + i * 120);
+    });
   }, 2000);
 });
 
-// ── CURSOR ──
-const dot = document.getElementById('dot'), ring = document.getElementById('ring');
-let mx = 0, my = 0, rx = 0, ry = 0;
-document.addEventListener('mousemove', e => {
-  mx = e.clientX; my = e.clientY;
-  dot.style.transform = `translate(${mx - 3}px,${my - 3}px)`;
-});
-(function loop() {
-  rx += (mx - rx) * .09; ry += (my - ry) * .09;
-  ring.style.transform = `translate(${rx - 16}px,${ry - 16}px)`;
-  requestAnimationFrame(loop);
-})();
-document.querySelectorAll('a,button').forEach(el => {
-  el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
-  el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+// ── THEME TOGGLE (Dark / Light) ──
+const themeToggle = document.getElementById('theme-toggle');
+const html = document.documentElement;
+
+// Load saved theme from localStorage
+const savedTheme = localStorage.getItem('fady-theme') || 'dark';
+html.setAttribute('data-theme', savedTheme);
+
+themeToggle && themeToggle.addEventListener('click', () => {
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('fady-theme', next);
 });
 
-// ── REVEAL ──
+// ── SCROLL PROGRESS BAR ──
+const scrollFill = document.getElementById('scroll-fill');
+function updateScrollProgress() {
+  if (!scrollFill) return;
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+  scrollFill.style.width = pct + '%';
+}
+window.addEventListener('scroll', updateScrollProgress, { passive: true });
+
+// ── NAV SCROLL STATE ──
+const navEl = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  if (!navEl) return;
+  navEl.classList.toggle('scrolled', window.scrollY > 40);
+}, { passive: true });
+
+// ── CURSOR ──
+const dot = document.getElementById('dot');
+const ring = document.getElementById('ring');
+if (dot && ring) {
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    dot.style.transform = `translate(${mx - 3}px,${my - 3}px)`;
+  });
+  (function loop() {
+    rx += (mx - rx) * .09; ry += (my - ry) * .09;
+    ring.style.transform = `translate(${rx - 16}px,${ry - 16}px)`;
+    requestAnimationFrame(loop);
+  })();
+  document.querySelectorAll('a,button,.pj-dot,.drawer-link').forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+  });
+}
+
+// ── MOBILE HAMBURGER + DRAWER ──
+const hamburger = document.getElementById('hamburger');
+const drawer = document.getElementById('mobile-drawer');
+const drawerOverlay = document.getElementById('drawer-overlay');
+
+function openDrawer() {
+  hamburger && hamburger.classList.add('open');
+  drawer && drawer.classList.add('open');
+  drawerOverlay && drawerOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  hamburger && hamburger.classList.remove('open');
+  drawer && drawer.classList.remove('open');
+  drawerOverlay && drawerOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+hamburger && hamburger.addEventListener('click', () => {
+  hamburger.classList.contains('open') ? closeDrawer() : openDrawer();
+});
+drawerOverlay && drawerOverlay.addEventListener('click', closeDrawer);
+document.querySelectorAll('.drawer-link').forEach(link => {
+  link.addEventListener('click', closeDrawer);
+});
+
+// ── REVEAL ANIMATIONS ──
 const obs = new IntersectionObserver(entries => {
   entries.forEach((e, i) => {
     if (e.isIntersecting) setTimeout(() => e.target.classList.add('in'), i * 80);
@@ -35,34 +106,248 @@ const skObs = new IntersectionObserver(entries => {
 }, { threshold: .2 });
 document.querySelectorAll('.sk-card').forEach(el => skObs.observe(el));
 
-// ── NAV ACTIVE ──
-const secs = document.querySelectorAll('section[id]'), nas = document.querySelectorAll('.n-links a');
+// ── NAV ACTIVE SECTION HIGHLIGHTING ──
+const secs = document.querySelectorAll('section[id]');
+const nas = document.querySelectorAll('.n-links a');
 window.addEventListener('scroll', () => {
   let id = '';
-  secs.forEach(s => { if (window.scrollY >= s.offsetTop - 160) id = s.id; });
-  nas.forEach(a => { a.style.color = a.getAttribute('href') === '#' + id ? 'var(--gold3)' : ''; });
-});
+  secs.forEach(s => { if (window.scrollY >= s.offsetTop - 180) id = s.id; });
+  nas.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+  });
+}, { passive: true });
 
-// ── EYEBROW TYPING ──
-const words = ['Front-end Developer', 'Problem Solver', 'SQL Developer', 'Open Source Builder'];
+// ── EYEBROW TYPING EFFECT ──
+const words = ['Front-end Developer', 'Problem Solver', 'SQL Developer', 'Open Source Builder', 'UI/UX Enthusiast'];
 let wi = 0, ci = 0, del = false;
-const el = document.getElementById('eyebrow-text');
+const eyebrowEl = document.getElementById('eyebrow-text');
 function type() {
+  if (!eyebrowEl) return;
   const w = words[wi];
   if (!del) {
-    el.textContent = w.slice(0, ++ci);
+    eyebrowEl.textContent = w.slice(0, ++ci);
     if (ci === w.length) { del = true; setTimeout(type, 2400); return; }
   } else {
-    el.textContent = w.slice(0, --ci);
+    eyebrowEl.textContent = w.slice(0, --ci);
     if (ci === 0) { del = false; wi = (wi + 1) % words.length; }
   }
   setTimeout(type, del ? 38 : 72);
 }
 setTimeout(type, 2200);
 
-// ── CANVAS BG ──
+// ── COUNTER ANIMATION (Hero Stats) ──
+function animateCounter(el) {
+  const target = parseInt(el.getAttribute('data-count'));
+  if (!target) return;
+  let current = 0;
+  const step = Math.ceil(target / 40);
+  const interval = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current;
+    if (current >= target) clearInterval(interval);
+  }, 40);
+}
+const counterObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      animateCounter(e.target);
+      counterObs.unobserve(e.target);
+    }
+  });
+}, { threshold: .5 });
+document.querySelectorAll('.stat-num[data-count]').forEach(el => counterObs.observe(el));
+
+// ── PROJECT IMAGE SLIDER (WorkerHub) ──
+function initSliders() {
+  document.querySelectorAll('.pj-img-slider').forEach(slider => {
+    const slides = slider.querySelectorAll('.pj-slide');
+    const dots = slider.querySelectorAll('.pj-dot');
+    if (!slides.length) return;
+    let current = 0;
+    let timer;
+
+    function goTo(n) {
+      slides[current].classList.remove('active');
+      dots[current] && dots[current].classList.remove('active');
+      current = (n + slides.length) % slides.length;
+      slides[current].classList.add('active');
+      dots[current] && dots[current].classList.add('active');
+    }
+
+    function startAuto() {
+      timer = setInterval(() => goTo(current + 1), 3200);
+    }
+    function stopAuto() { clearInterval(timer) }
+
+    dots.forEach((dot, i) => {
+      dot.addEventListener('click', () => { stopAuto(); goTo(i); startAuto(); });
+    });
+
+    slider.addEventListener('mouseenter', stopAuto);
+    slider.addEventListener('mouseleave', startAuto);
+
+    startAuto();
+  });
+}
+initSliders();
+
+// ── PROJECT FILTER ──
+const filterBtns = document.querySelectorAll('.pj-filter');
+const pjItems = document.querySelectorAll('.pj-item');
+const pjPhPair = document.querySelector('.pj-ph-pair');
+
+filterBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Update active button
+    filterBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const filter = btn.getAttribute('data-filter');
+
+    // Placeholder pair: always visible
+    if (pjPhPair) {
+      pjPhPair.style.opacity = '1';
+      pjPhPair.style.display = '';
+    }
+
+    pjItems.forEach((item, i) => {
+      const cat = item.getAttribute('data-category') || '';
+      const match = filter === 'all' || cat === filter;
+
+      if (match) {
+        item.classList.remove('filtered-out');
+        item.style.opacity = '0';
+        item.style.display = '';
+        setTimeout(() => { item.style.opacity = '1'; }, i * 60);
+      } else {
+        item.style.opacity = '0';
+        setTimeout(() => {
+          item.classList.add('filtered-out');
+        }, 300);
+      }
+    });
+  });
+});
+
+// ── CONTACT FORM VALIDATION + SUBMISSION ──
+const form = document.getElementById('contactForm');
+const submitBtn = document.getElementById('formSubmitBtn');
+const successMsg = document.getElementById('form-success');
+const errorMsg = document.getElementById('form-error');
+
+function validateField(input, errId, msg) {
+  const errEl = document.getElementById(errId);
+  if (!input.value.trim()) {
+    input.classList.add('error');
+    if (errEl) errEl.textContent = msg;
+    return false;
+  }
+  if (input.type === 'email') {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(input.value.trim())) {
+      input.classList.add('error');
+      if (errEl) errEl.textContent = 'Please enter a valid email address.';
+      return false;
+    }
+  }
+  input.classList.remove('error');
+  if (errEl) errEl.textContent = '';
+  return true;
+}
+
+// Live validation on blur
+['fname','femail','fsubject','fmessage'].forEach(id => {
+  const msgs = { fname: 'Name is required.', femail: 'Email is required.', fsubject: 'Subject is required.', fmessage: 'Message is required.' };
+  const errIds = { fname: 'err-name', femail: 'err-email', fsubject: 'err-subject', fmessage: 'err-message' };
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('blur', () => validateField(el, errIds[id], msgs[id]));
+    el.addEventListener('input', () => {
+      if (el.classList.contains('error')) {
+        el.classList.remove('error');
+        const errEl = document.getElementById(errIds[id]);
+        if (errEl) errEl.textContent = '';
+      }
+    });
+  }
+});
+
+if (form && submitBtn) {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Validate all fields
+    const nameOk = validateField(document.getElementById('fname'), 'err-name', 'Name is required.');
+    const emailOk = validateField(document.getElementById('femail'), 'err-email', 'Email is required.');
+    const subjectOk = validateField(document.getElementById('fsubject'), 'err-subject', 'Subject is required.');
+    const msgOk = validateField(document.getElementById('fmessage'), 'err-message', 'Message is required.');
+
+    if (!nameOk || !emailOk || !subjectOk || !msgOk) return;
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.querySelector('.submit-text').style.display = 'none';
+    submitBtn.querySelector('.submit-spinner').style.display = 'flex';
+    submitBtn.querySelector('.submit-arrow').style.display = 'none';
+    if (successMsg) successMsg.style.display = 'none';
+    if (errorMsg) errorMsg.style.display = 'none';
+
+    try {
+      const formData = new FormData(form);
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok || response.status === 200) {
+        // Success
+        if (successMsg) successMsg.style.display = 'flex';
+        form.reset();
+      } else {
+        throw new Error('Form submission failed');
+      }
+    } catch (err) {
+      if (errorMsg) errorMsg.style.display = 'flex';
+    } finally {
+      // Restore button
+      submitBtn.disabled = false;
+      submitBtn.querySelector('.submit-text').style.display = '';
+      submitBtn.querySelector('.submit-spinner').style.display = 'none';
+      submitBtn.querySelector('.submit-arrow').style.display = '';
+    }
+  });
+}
+
+// ── FLOATING BACK TO TOP + CIRCULAR PROGRESS ──
+const fabTop = document.getElementById('fab-top');
+const fabProg = fabTop && fabTop.querySelector('.fab-prog');
+const CIRCUMFERENCE = 2 * Math.PI * 19; // r=19, C = 2πr ≈ 119.38
+
+window.addEventListener('scroll', () => {
+  if (!fabTop) return;
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = docHeight > 0 ? scrollTop / docHeight : 0;
+
+  // Show/hide FAB
+  fabTop.classList.toggle('visible', scrollTop > 300);
+
+  // Update SVG circle progress
+  if (fabProg) {
+    const offset = CIRCUMFERENCE * (1 - progress);
+    fabProg.style.strokeDashoffset = offset;
+  }
+}, { passive: true });
+
+fabTop && fabTop.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ── CANVAS BACKGROUND ──
 (function () {
   const canvas = document.getElementById('bgCanvas');
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const GOLD = 'rgba(201,168,76,';
   let W, H, particles, lines, floatingOrbs;
